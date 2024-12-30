@@ -1,6 +1,6 @@
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local TextService = game:GetService("TextService")
+local RunService = game:GetService("RunService")
 
 -- Loading UI
 local LoadingUI = Instance.new("ScreenGui")
@@ -40,8 +40,8 @@ LoadingText.TextSize = 18
 -- Set up Menu UI
 MenuUI.Parent = game:GetService("CoreGui")
 MainFrame.Parent = MenuUI
-MainFrame.Size = UDim2.new(0, 300, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+MainFrame.Size = UDim2.new(0, 500, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Visible = false
@@ -52,25 +52,32 @@ UICorner.Parent = MainFrame
 Title.Parent = MainFrame
 Title.Text = "Inuria.us"
 Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Position = UDim2.new(0, 0, 0, 10)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(147, 112, 219)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 22
+Title.TextXAlignment = Enum.TextXAlignment.Center
 
 Watermark.Parent = MainFrame
 Watermark.Text = "inuria private"
 Watermark.Size = UDim2.new(0, 100, 0, 15)
-Watermark.Position = UDim2.new(1, -105, 1, -20)
+Watermark.Position = UDim2.new(1, -115, 1, -25)
 Watermark.BackgroundTransparency = 1
 Watermark.TextColor3 = Color3.fromRGB(150, 150, 150)
 Watermark.Font = Enum.Font.Gotham
-Watermark.TextSize = 11
-Watermark.TextXAlignment = Enum.TextXAlignment.Right
+Watermark.TextSize = 14
+
+-- Sections Setup
+Sections.Parent = MainFrame
+Sections.Size = UDim2.new(1, 0, 0, 35)
+Sections.Position = UDim2.new(0, 0, 0, 40)  -- Moved up from 50
+Sections.BackgroundTransparency = 1
 
 -- Content Frame Setup
 ContentFrame.Parent = MainFrame
-ContentFrame.Size = UDim2.new(1, -20, 1, -80)
-ContentFrame.Position = UDim2.new(0, 10, 0, 60)
+ContentFrame.Size = UDim2.new(1, -30, 1, -100)
+ContentFrame.Position = UDim2.new(0, 15, 0, 85)  -- Adjusted to match new button position
 ContentFrame.BackgroundTransparency = 1
 
 -- Content Pages
@@ -89,12 +96,160 @@ MiscContent.Size = UDim2.new(1, 0, 1, 0)
 MiscContent.BackgroundTransparency = 1
 MiscContent.Visible = false
 
--- Section Buttons
-Sections.Parent = MainFrame
-Sections.Size = UDim2.new(1, 0, 0, 30)
-Sections.Position = UDim2.new(0, 0, 0, 30)
-Sections.BackgroundTransparency = 1
+-- Library Functions
+local Library = {}
 
+function Library:CreateToggle(parent, name, default, callback)
+    local ToggleFrame = Instance.new("Frame")
+    local ToggleButton = Instance.new("TextButton")
+    local ToggleTitle = Instance.new("TextLabel")
+    local ToggleIndicator = Instance.new("Frame")
+    
+    ToggleFrame.Name = "Toggle"
+    ToggleFrame.Parent = parent
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    ToggleFrame.Size = UDim2.new(1, 0, 0, 40)
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 6)
+    UICorner.Parent = ToggleFrame
+    
+    ToggleButton.Name = "ToggleButton"
+    ToggleButton.Parent = ToggleFrame
+    ToggleButton.BackgroundTransparency = 1
+    ToggleButton.Size = UDim2.new(1, 0, 1, 0)
+    ToggleButton.Font = Enum.Font.SourceSans
+    ToggleButton.Text = ""
+    ToggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    ToggleButton.TextSize = 14
+    
+    ToggleTitle.Name = "Title"
+    ToggleTitle.Parent = ToggleFrame
+    ToggleTitle.BackgroundTransparency = 1
+    ToggleTitle.Position = UDim2.new(0, 15, 0, 0)
+    ToggleTitle.Size = UDim2.new(1, -65, 1, 0)
+    ToggleTitle.Font = Enum.Font.Gotham
+    ToggleTitle.Text = name
+    ToggleTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleTitle.TextSize = 14
+    ToggleTitle.TextXAlignment = Enum.TextXAlignment.Left
+    
+    ToggleIndicator.Name = "Indicator"
+    ToggleIndicator.Parent = ToggleFrame
+    ToggleIndicator.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    ToggleIndicator.Position = UDim2.new(1, -45, 0.5, -10)
+    ToggleIndicator.Size = UDim2.new(0, 35, 0, 20)
+    
+    local IndicatorCorner = Instance.new("UICorner")
+    IndicatorCorner.CornerRadius = UDim.new(1, 0)
+    IndicatorCorner.Parent = ToggleIndicator
+    
+    local enabled = default or false
+    
+    local function UpdateToggle()
+        enabled = not enabled
+        TweenService:Create(ToggleIndicator, TweenInfo.new(0.2), {
+            BackgroundColor3 = enabled and Color3.fromRGB(147, 112, 219) or Color3.fromRGB(50, 50, 50)
+        }):Play()
+        if callback then callback(enabled) end
+    end
+    
+    ToggleButton.MouseButton1Click:Connect(UpdateToggle)
+    if enabled then UpdateToggle() end
+    
+    return ToggleFrame
+end
+
+function Library:CreateSlider(parent, name, min, max, default, callback)
+    local SliderFrame = Instance.new("Frame")
+    local SliderTitle = Instance.new("TextLabel")
+    local SliderValue = Instance.new("TextLabel")
+    local SliderBackground = Instance.new("Frame")
+    local SliderFill = Instance.new("Frame")
+    local SliderButton = Instance.new("TextButton")
+    
+    SliderFrame.Name = "Slider"
+    SliderFrame.Parent = parent
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    SliderFrame.Size = UDim2.new(1, 0, 0, 50)
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 6)
+    UICorner.Parent = SliderFrame
+    
+    SliderTitle.Name = "Title"
+    SliderTitle.Parent = SliderFrame
+    SliderTitle.BackgroundTransparency = 1
+    SliderTitle.Position = UDim2.new(0, 15, 0, 0)
+    SliderTitle.Size = UDim2.new(1, -15, 0, 25)
+    SliderTitle.Font = Enum.Font.Gotham
+    SliderTitle.Text = name
+    SliderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SliderTitle.TextSize = 14
+    SliderTitle.TextXAlignment = Enum.TextXAlignment.Left
+    
+    SliderValue.Name = "Value"
+    SliderValue.Parent = SliderFrame
+    SliderValue.BackgroundTransparency = 1
+    SliderValue.Position = UDim2.new(1, -55, 0, 0)
+    SliderValue.Size = UDim2.new(0, 40, 0, 25)
+    SliderValue.Font = Enum.Font.Gotham
+    SliderValue.Text = tostring(default or min)
+    SliderValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SliderValue.TextSize = 14
+    
+    SliderBackground.Name = "Background"
+    SliderBackground.Parent = SliderFrame
+    SliderBackground.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    SliderBackground.Position = UDim2.new(0, 15, 0, 35)
+    SliderBackground.Size = UDim2.new(1, -30, 0, 5)
+    
+    local BackgroundCorner = Instance.new("UICorner")
+    BackgroundCorner.CornerRadius = UDim.new(1, 0)
+    BackgroundCorner.Parent = SliderBackground
+    
+    SliderFill.Name = "Fill"
+    SliderFill.Parent = SliderBackground
+    SliderFill.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
+    SliderFill.Size = UDim2.new(0, 0, 1, 0)
+    
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(1, 0)
+    FillCorner.Parent = SliderFill
+    
+    SliderButton.Name = "SliderButton"
+    SliderButton.Parent = SliderBackground
+    SliderButton.BackgroundTransparency = 1
+    SliderButton.Size = UDim2.new(1, 0, 1, 0)
+    SliderButton.Text = ""
+    
+    local function UpdateSlider(input)
+        local pos = UDim2.new(math.clamp((input.Position.X - SliderBackground.AbsolutePosition.X) / SliderBackground.AbsoluteSize.X, 0, 1), 0, 1, 0)
+        SliderFill.Size = pos
+        local value = math.floor(min + ((max - min) * pos.X.Scale))
+        SliderValue.Text = tostring(value)
+        if callback then callback(value) end
+    end
+    
+    SliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local connection
+            connection = RunService.RenderStepped:Connect(function()
+                UpdateSlider(input)
+            end)
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    connection:Disconnect()
+                end
+            end)
+        end
+    end)
+    
+    return SliderFrame
+end
+
+-- Section Buttons
 local function CreateSection(name, position)
     local button = Instance.new("TextButton")
     local underline = Instance.new("Frame")
@@ -142,16 +297,10 @@ MiscButton.MouseButton1Click:Connect(function()
     SwitchTab(MiscButton, MiscContent)
 end)
 
+-- Button Hover Effects
 local function HandleButtonHover(button, underline)
-    local textWidth = TextService:GetTextSize(
-        button.Text,
-        button.TextSize,
-        button.Font,
-        Vector2.new(1000, 1000)
-    ).X
-    
     button.MouseEnter:Connect(function()
-        TweenService:Create(underline, TweenInfo.new(0.3), {Size = UDim2.new(0, textWidth, 0, 2)}):Play()
+        TweenService:Create(underline, TweenInfo.new(0.3), {Size = UDim2.new(0.8, 0, 0, 2)}):Play()
     end)
     
     button.MouseLeave:Connect(function()
@@ -168,7 +317,7 @@ local function PlayLoadingAnimation()
     local rotation = 0
     local connection
     
-    connection = game:GetService("RunService").RenderStepped:Connect(function()
+    connection = RunService.RenderStepped:Connect(function()
         rotation = rotation + 5
         LoadingCircle.Rotation = rotation
     end)
@@ -186,7 +335,44 @@ local function PlayLoadingAnimation()
     MainFrame.Visible = true
 end
 
--- Toggle Menu
+-- Make UI Draggable
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function UpdateDrag(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+Title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        UpdateDrag(input)
+    end
+end)
+
+-- Toggle UI
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Insert then
         MainFrame.Visible = not MainFrame.Visible
@@ -200,5 +386,6 @@ PlayLoadingAnimation()
 return {
     VisualContent = VisualContent,
     AimbotContent = AimbotContent,
-    MiscContent = MiscContent
+    MiscContent = MiscContent,
+    Library = Library
 }
